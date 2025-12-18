@@ -32,20 +32,24 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
+    <div className="min-h-screen flex items-center justify-center bg-background relative overflow-hidden">
+      {/* Antigravity Background */}
+      <div className="fixed inset-0 z-0">
         <Antigravity
-    count={300}
-    magnetRadius={6}
-    ringRadius={7}
-    waveSpeed={0.4}
-    waveAmplitude={1}
-    particleSize={1.5}
-    lerpSpeed={0.05}
-    color={'#FF9FFC'}
-    autoAnimate={true}
-    particleVariance={1}
-  />
-      <Card className="w-full max-w-md">
+          count={300}
+          magnetRadius={6}
+          ringRadius={7}
+          waveSpeed={0.4}
+          waveAmplitude={1}
+          particleSize={1.5}
+          lerpSpeed={0.05}
+          color={'#ffffff'}
+          autoAnimate={true}
+          particleVariance={1}
+        />
+      </div>
+      {/* Login Card - Above background */}
+      <Card className="w-full max-w-md relative z-10 bg-background/95 backdrop-blur-sm">
         <CardHeader>
           <CardTitle>Login</CardTitle>
           <CardDescription>Enter your credentials to access your account</CardDescription>

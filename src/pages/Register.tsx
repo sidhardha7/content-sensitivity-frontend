@@ -4,6 +4,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import Antigravity from '@/components/Antigravity';
 
 export default function Register() {
   const [tenantName, setTenantName] = useState('');
@@ -31,8 +32,24 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-background relative overflow-hidden">
+      {/* Antigravity Background */}
+      <div className="fixed inset-0 z-0">
+        <Antigravity
+          count={300}
+          magnetRadius={6}
+          ringRadius={7}
+          waveSpeed={0.4}
+          waveAmplitude={1}
+          particleSize={1.5}
+          lerpSpeed={0.05}
+          color={'#FF9FFC'}
+          autoAnimate={true}
+          particleVariance={1}
+        />
+      </div>
+      {/* Register Card - Above background */}
+      <Card className="w-full max-w-md relative z-10 bg-background/95 backdrop-blur-sm">
         <CardHeader>
           <CardTitle>Create Account</CardTitle>
           <CardDescription>Register your organization and create an admin account</CardDescription>
