@@ -1,31 +1,41 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/context/AuthContext';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import Antigravity from '@/components/Antigravity';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { useAuth } from "@/context/AuthContext";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import Antigravity from "@/components/Antigravity";
 
 export default function Register() {
-  const [tenantName, setTenantName] = useState('');
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [tenantName, setTenantName] = useState("");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setLoading(true);
 
     try {
       await register(tenantName, name, email, password);
-      navigate('/dashboard');
+      toast.success("Account created successfully!");
+      navigate("/dashboard");
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Registration failed');
+      const errorMessage = err.response?.data?.message || "Registration failed";
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -43,7 +53,7 @@ export default function Register() {
           waveAmplitude={1}
           particleSize={1.5}
           lerpSpeed={0.05}
-          color={'#FF9FFC'}
+          color={"#ffffff"}
           autoAnimate={true}
           particleVariance={1}
         />
@@ -52,7 +62,9 @@ export default function Register() {
       <Card className="w-full max-w-md relative z-10 bg-background/95 backdrop-blur-sm">
         <CardHeader>
           <CardTitle>Create Account</CardTitle>
-          <CardDescription>Register your organization and create an admin account</CardDescription>
+          <CardDescription>
+            Register your organization and create an admin account
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -115,10 +127,10 @@ export default function Register() {
               />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Creating account...' : 'Register'}
+              {loading ? "Creating account..." : "Register"}
             </Button>
             <div className="text-center text-sm text-muted-foreground">
-              Already have an account?{' '}
+              Already have an account?{" "}
               <a href="/login" className="text-primary hover:underline">
                 Login
               </a>
@@ -129,4 +141,3 @@ export default function Register() {
     </div>
   );
 }
-

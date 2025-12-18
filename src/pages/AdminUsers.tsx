@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import api from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -60,7 +61,10 @@ export default function AdminUsers() {
       const response = await api.get("/admin/users");
       setUsers(response.data.users);
     } catch (err: any) {
-      setError(err.response?.data?.message || "Failed to load users");
+      const errorMessage =
+        err.response?.data?.message || "Failed to load users";
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -82,14 +86,21 @@ export default function AdminUsers() {
       setCreateEmail("");
       setCreateRole("viewer");
       loadUsers();
-      // Show temp password if returned
+
+      // Show success toast with temp password if returned
       if (response.data.tempPassword) {
-        alert(
-          `User created! Temporary password: ${response.data.tempPassword}`
-        );
+        toast.success("User created successfully!", {
+          description: `Temporary password: ${response.data.tempPassword}`,
+          duration: 5000,
+        });
+      } else {
+        toast.success("User created successfully!");
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || "Failed to create user");
+      const errorMessage =
+        err.response?.data?.message || "Failed to create user";
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setCreating(false);
     }
@@ -122,8 +133,12 @@ export default function AdminUsers() {
       setEditDialogOpen(false);
       setUserToEdit(null);
       loadUsers();
+      toast.success("User updated successfully!");
     } catch (err: any) {
-      setError(err.response?.data?.message || "Failed to update user");
+      const errorMessage =
+        err.response?.data?.message || "Failed to update user";
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setUpdating(false);
     }
@@ -143,8 +158,12 @@ export default function AdminUsers() {
       setDeleteDialogOpen(false);
       setUserToDelete(null);
       loadUsers();
+      toast.success("User deleted successfully!");
     } catch (err: any) {
-      setError(err.response?.data?.message || "Failed to delete user");
+      const errorMessage =
+        err.response?.data?.message || "Failed to delete user";
+      setError(errorMessage);
+      toast.error(errorMessage);
       setDeleteDialogOpen(false);
     } finally {
       setDeleting(false);
