@@ -13,7 +13,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { UserPlus, Trash2, Loader2, Pencil } from "lucide-react";
+import { UserPlus, Trash2, Loader2, Pencil, Eye } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface User {
   _id: string;
@@ -50,6 +57,13 @@ export default function AdminUsers() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [permissionsDialogOpen, setPermissionsDialogOpen] = useState(false);
+  const [userForPermissions, setUserForPermissions] = useState<User | null>(
+    null
+  );
+  const [ownedVideos, setOwnedVideos] = useState<any[]>([]);
+  const [assignedVideos, setAssignedVideos] = useState<any[]>([]);
+  const [loadingPermissions, setLoadingPermissions] = useState(false);
 
   useEffect(() => {
     loadUsers();
@@ -170,6 +184,26 @@ export default function AdminUsers() {
     }
   };
 
+  const handleViewPermissions = async (user: User) => {
+    setUserForPermissions(user);
+    setPermissionsDialogOpen(true);
+    setLoadingPermissions(true);
+    setOwnedVideos([]);
+    setAssignedVideos([]);
+
+    try {
+      const response = await api.get(`/admin/users/${user._id}/videos`);
+      setOwnedVideos(response.data.ownedVideos || []);
+      setAssignedVideos(response.data.assignedVideos || []);
+    } catch (err: any) {
+      const errorMessage =
+        err.response?.data?.message || "Failed to load video permissions";
+      toast.error(errorMessage);
+    } finally {
+      setLoadingPermissions(false);
+    }
+  };
+
   const getRoleColor = (role: string) => {
     switch (role) {
       case "admin":
@@ -270,6 +304,15 @@ export default function AdminUsers() {
                           <Button
                             variant="ghost"
                             size="icon"
+                            className="h-8 w-8"
+                            onClick={() => handleViewPermissions(user)}
+                            title="View video permissions"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             className={`h-8 w-8 ${
                               currentUser?._id === user._id
                                 ? "opacity-40 cursor-not-allowed"
@@ -366,18 +409,21 @@ export default function AdminUsers() {
               <label htmlFor="createRole" className="text-sm font-medium">
                 Role
               </label>
-              <select
-                id="createRole"
+              <Select
                 value={createRole}
-                onChange={(e) =>
-                  setCreateRole(e.target.value as "viewer" | "editor" | "admin")
+                onValueChange={(value: "viewer" | "editor" | "admin") =>
+                  setCreateRole(value)
                 }
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               >
-                <option value="viewer">Viewer</option>
-                <option value="editor">Editor</option>
-                <option value="admin">Admin</option>
-              </select>
+                <SelectTrigger id="createRole">
+                  <SelectValue placeholder="Select a role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="viewer">Viewer</SelectItem>
+                  <SelectItem value="editor">Editor</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <DialogFooter>
               <Button
@@ -440,18 +486,21 @@ export default function AdminUsers() {
               <label htmlFor="editRole" className="text-sm font-medium">
                 Role
               </label>
-              <select
-                id="editRole"
+              <Select
                 value={editRole}
-                onChange={(e) =>
-                  setEditRole(e.target.value as "viewer" | "editor" | "admin")
+                onValueChange={(value: "viewer" | "editor" | "admin") =>
+                  setEditRole(value)
                 }
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               >
-                <option value="viewer">Viewer</option>
-                <option value="editor">Editor</option>
-                <option value="admin">Admin</option>
-              </select>
+                <SelectTrigger id="editRole">
+                  <SelectValue placeholder="Select a role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="viewer">Viewer</SelectItem>
+                  <SelectItem value="editor">Editor</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex items-center space-x-2">
               <input
@@ -506,6 +555,312 @@ export default function AdminUsers() {
               disabled={deleting}
             >
               {deleting ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Video Permissions Dialog */}
+      <Dialog
+        open={permissionsDialogOpen}
+        onOpenChange={setPermissionsDialogOpen}
+      >
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Video Permissions</DialogTitle>
+            <DialogDescription>
+              Videos that {userForPermissions?.name} has access to
+            </DialogDescription>
+          </DialogHeader>
+          {loadingPermissions ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              <span className="ml-2">Loading permissions...</span>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {/* Owned Videos */}
+              <div>
+                <h3 className="font-semibold mb-3">
+                  Owned Videos ({ownedVideos.length})
+                </h3>
+                {ownedVideos.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    No videos owned by this user
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {ownedVideos.map((video) => (
+                      <Card key={video._id}>
+                        <CardContent className="p-4">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <h4 className="font-medium">{video.title}</h4>
+                              {video.description && (
+                                <p className="text-sm text-muted-foreground mt-1">
+                                  {video.description}
+                                </p>
+                              )}
+                              <div className="flex gap-2 mt-2">
+                                <span
+                                  className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                    video.status === "processed"
+                                      ? "bg-green-100 text-green-800"
+                                      : video.status === "processing"
+                                      ? "bg-blue-100 text-blue-800"
+                                      : video.status === "failed"
+                                      ? "bg-red-100 text-red-800"
+                                      : "bg-gray-100 text-gray-800"
+                                  }`}
+                                >
+                                  {video.status}
+                                </span>
+                                <span
+                                  className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                    video.safetyStatus === "safe"
+                                      ? "bg-green-100 text-green-800"
+                                      : video.safetyStatus === "flagged"
+                                      ? "bg-red-100 text-red-800"
+                                      : "bg-gray-100 text-gray-800"
+                                  }`}
+                                >
+                                  {video.safetyStatus}
+                                </span>
+                                <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                  Owner
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Assigned Videos */}
+              <div>
+                <h3 className="font-semibold mb-3">
+                  Assigned Videos ({assignedVideos.length})
+                </h3>
+                {assignedVideos.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    No videos assigned to this user
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {assignedVideos.map((video) => (
+                      <Card key={video._id}>
+                        <CardContent className="p-4">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <h4 className="font-medium">{video.title}</h4>
+                              {video.description && (
+                                <p className="text-sm text-muted-foreground mt-1">
+                                  {video.description}
+                                </p>
+                              )}
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Owner: {video.owner.name}
+                              </p>
+                              <div className="flex gap-2 mt-2">
+                                <span
+                                  className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                    video.status === "processed"
+                                      ? "bg-green-100 text-green-800"
+                                      : video.status === "processing"
+                                      ? "bg-blue-100 text-blue-800"
+                                      : video.status === "failed"
+                                      ? "bg-red-100 text-red-800"
+                                      : "bg-gray-100 text-gray-800"
+                                  }`}
+                                >
+                                  {video.status}
+                                </span>
+                                <span
+                                  className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                    video.safetyStatus === "safe"
+                                      ? "bg-green-100 text-green-800"
+                                      : video.safetyStatus === "flagged"
+                                      ? "bg-red-100 text-red-800"
+                                      : "bg-gray-100 text-gray-800"
+                                  }`}
+                                >
+                                  {video.safetyStatus}
+                                </span>
+                                <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                  Assigned
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setPermissionsDialogOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Video Permissions Dialog */}
+      <Dialog
+        open={permissionsDialogOpen}
+        onOpenChange={setPermissionsDialogOpen}
+      >
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Video Permissions</DialogTitle>
+            <DialogDescription>
+              Videos that {userForPermissions?.name} has access to
+            </DialogDescription>
+          </DialogHeader>
+          {loadingPermissions ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              <span className="ml-2">Loading permissions...</span>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {/* Owned Videos - Show for editor and admin, hide for viewer */}
+              {userForPermissions?.role !== "viewer" && (
+                <div>
+                  <h3 className="font-semibold mb-3">
+                    Owned Videos ({ownedVideos.length})
+                  </h3>
+                  {ownedVideos.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      No videos owned by this user
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {ownedVideos.map((video) => (
+                        <Card key={video._id}>
+                          <CardContent className="p-4">
+                            <div className="flex justify-between items-start">
+                              <div className="flex-1">
+                                <h4 className="font-medium">{video.title}</h4>
+                                {video.description && (
+                                  <p className="text-sm text-muted-foreground mt-1">
+                                    {video.description}
+                                  </p>
+                                )}
+                                <div className="flex gap-2 mt-2">
+                                  <span
+                                    className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                      video.status === "processed"
+                                        ? "bg-green-100 text-green-800"
+                                        : video.status === "processing"
+                                        ? "bg-blue-100 text-blue-800"
+                                        : video.status === "failed"
+                                        ? "bg-red-100 text-red-800"
+                                        : "bg-gray-100 text-gray-800"
+                                    }`}
+                                  >
+                                    {video.status}
+                                  </span>
+                                  <span
+                                    className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                      video.safetyStatus === "safe"
+                                        ? "bg-green-100 text-green-800"
+                                        : video.safetyStatus === "flagged"
+                                        ? "bg-red-100 text-red-800"
+                                        : "bg-gray-100 text-gray-800"
+                                    }`}
+                                  >
+                                    {video.safetyStatus}
+                                  </span>
+                                  <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                    Owner
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Assigned Videos - Show for viewer and editor, hide for admin */}
+              {userForPermissions?.role !== "admin" && (
+                <div>
+                  <h3 className="font-semibold mb-3">
+                    Assigned Videos ({assignedVideos.length})
+                  </h3>
+                  {assignedVideos.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      No videos assigned to this user
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {assignedVideos.map((video) => (
+                        <Card key={video._id}>
+                          <CardContent className="p-4">
+                            <div className="flex justify-between items-start">
+                              <div className="flex-1">
+                                <h4 className="font-medium">{video.title}</h4>
+                                {video.description && (
+                                  <p className="text-sm text-muted-foreground mt-1">
+                                    {video.description}
+                                  </p>
+                                )}
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  Owner: {video.owner?.name || "Unknown"}
+                                </p>
+                                <div className="flex gap-2 mt-2">
+                                  <span
+                                    className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                      video.status === "processed"
+                                        ? "bg-green-100 text-green-800"
+                                        : video.status === "processing"
+                                        ? "bg-blue-100 text-blue-800"
+                                        : video.status === "failed"
+                                        ? "bg-red-100 text-red-800"
+                                        : "bg-gray-100 text-gray-800"
+                                    }`}
+                                  >
+                                    {video.status}
+                                  </span>
+                                  <span
+                                    className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                      video.safetyStatus === "safe"
+                                        ? "bg-green-100 text-green-800"
+                                        : video.safetyStatus === "flagged"
+                                        ? "bg-red-100 text-red-800"
+                                        : "bg-gray-100 text-gray-800"
+                                    }`}
+                                  >
+                                    {video.safetyStatus}
+                                  </span>
+                                  <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                    Assigned
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setPermissionsDialogOpen(false)}>
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>
