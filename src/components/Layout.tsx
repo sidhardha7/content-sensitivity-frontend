@@ -22,7 +22,7 @@ export default function Layout({ children }: LayoutProps) {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-6">
             <Link to="/dashboard" className="text-xl font-bold">
-              PulseGen
+              ContentGuard
             </Link>
             <div className="flex space-x-4">
               <Link to="/dashboard" className="text-sm hover:text-primary">

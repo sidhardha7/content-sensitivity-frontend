@@ -1,4 +1,5 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuth } from './AuthContext';
 
@@ -10,7 +11,6 @@ interface SocketContextType {
 const SocketContext = createContext<SocketContextType | undefined>(undefined);
 
 // Get Socket URL from environment variable or use default
-// Remove /api suffix if present since Socket.io doesn't need it
 const getSocketUrl = () => {
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
   return apiUrl.replace('/api', '');

@@ -1,4 +1,5 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
 
 type Theme = 'dark' | 'light' | 'system';
 
@@ -13,7 +14,7 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const [theme, setTheme] = useState<Theme>(() => {
     const stored = localStorage.getItem('theme') as Theme;
-    return stored || 'system';
+    return stored || 'dark'; // Default to dark mode
   });
 
   const [resolvedTheme, setResolvedTheme] = useState<'dark' | 'light'>(() => {
@@ -22,6 +23,25 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     }
     return theme;
   });
+
+  // Apply theme immediately on mount
+  useEffect(() => {
+    const root = window.document.documentElement;
+    const initialTheme = localStorage.getItem('theme') as Theme || 'dark';
+    
+    if (initialTheme === 'system') {
+      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      root.classList.remove('dark');
+      if (systemTheme === 'dark') {
+        root.classList.add('dark');
+      }
+    } else {
+      root.classList.remove('dark');
+      if (initialTheme === 'dark') {
+        root.classList.add('dark');
+      }
+    }
+  }, []); // Run only on mount
 
   useEffect(() => {
     const root = window.document.documentElement;

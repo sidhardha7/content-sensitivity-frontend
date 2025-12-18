@@ -31,7 +31,7 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center bg-background">
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>Create Account</CardTitle>
@@ -40,7 +40,7 @@ export default function Register() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-              <div className="p-3 text-sm text-red-600 bg-red-50 rounded-md">
+              <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-md">
                 {error}
               </div>
             )}

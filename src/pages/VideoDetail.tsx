@@ -174,6 +174,12 @@ export default function VideoDetail() {
               controls
               className="w-full rounded-lg"
               src={videoUrl}
+              preload="metadata"
+              crossOrigin="anonymous"
+              onError={(e) => {
+                console.error('Video playback error:', e);
+                setError('Failed to load video. Please try again.');
+              }}
             >
               Your browser does not support the video tag.
             </video>
