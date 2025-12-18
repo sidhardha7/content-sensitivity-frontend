@@ -104,7 +104,7 @@ export default function VideoLibrary() {
   };
 
   return (
-    <div className="container mx-auto p-6">
+    <div className="container mx-auto p-4">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Video Library</h1>
         {(user?.role === "editor" || user?.role === "admin") && (

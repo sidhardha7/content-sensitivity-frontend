@@ -1,10 +1,18 @@
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import api from '@/lib/api';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useAuth } from '@/context/AuthContext';
-import { useSocket } from '@/context/SocketContext';
+import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import api from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { useAuth } from "@/context/AuthContext";
+import { useSocket } from "@/context/SocketContext";
 
 interface Video {
   _id: string;
@@ -29,9 +37,13 @@ export default function VideoDetail() {
   const { socket } = useSocket();
   const [video, setVideo] = useState<Video | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [processingProgress, setProcessingProgress] = useState<number | null>(null);
+  const [error, setError] = useState("");
+  const [processingProgress, setProcessingProgress] = useState<number | null>(
+    null
+  );
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -42,13 +54,19 @@ export default function VideoDetail() {
   useEffect(() => {
     if (!socket || !id) return;
 
-    const handleProcessingStart = (data: { videoId: string; progress: number }) => {
+    const handleProcessingStart = (data: {
+      videoId: string;
+      progress: number;
+    }) => {
       if (data.videoId === id) {
         setProcessingProgress(data.progress);
       }
     };
 
-    const handleProcessingProgress = (data: { videoId: string; progress: number }) => {
+    const handleProcessingProgress = (data: {
+      videoId: string;
+      progress: number;
+    }) => {
       if (data.videoId === id) {
         setProcessingProgress(data.progress);
       }
@@ -68,16 +86,16 @@ export default function VideoDetail() {
       }
     };
 
-    socket.on('processing:start', handleProcessingStart);
-    socket.on('processing:progress', handleProcessingProgress);
-    socket.on('processing:completed', handleProcessingCompleted);
-    socket.on('processing:failed', handleProcessingFailed);
+    socket.on("processing:start", handleProcessingStart);
+    socket.on("processing:progress", handleProcessingProgress);
+    socket.on("processing:completed", handleProcessingCompleted);
+    socket.on("processing:failed", handleProcessingFailed);
 
     return () => {
-      socket.off('processing:start', handleProcessingStart);
-      socket.off('processing:progress', handleProcessingProgress);
-      socket.off('processing:completed', handleProcessingCompleted);
-      socket.off('processing:failed', handleProcessingFailed);
+      socket.off("processing:start", handleProcessingStart);
+      socket.off("processing:progress", handleProcessingProgress);
+      socket.off("processing:completed", handleProcessingCompleted);
+      socket.off("processing:failed", handleProcessingFailed);
     };
   }, [socket, id]);
 
@@ -88,49 +106,49 @@ export default function VideoDetail() {
       setVideo(response.data.video);
 
       // Create video URL for streaming (if processed)
-      if (response.data.video.status === 'processed') {
-        const token = localStorage.getItem('token');
-        // Get base URL from environment variable or use default
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-        const baseUrl = apiUrl.replace('/api', '');
-        // Include token in URL for video element (backend will validate it)
+      if (response.data.video.status === "processed") {
+        const token = localStorage.getItem("token");
+        const apiUrl =
+          import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+        const baseUrl = apiUrl.replace("/api", "");
         setVideoUrl(`${baseUrl}/api/videos/${id}/stream?token=${token}`);
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to load video');
+      setError(err.response?.data?.message || "Failed to load video");
     } finally {
       setLoading(false);
     }
   };
 
   const handleDelete = async () => {
-    if (!confirm('Are you sure you want to delete this video?')) {
-      return;
-    }
-
+    setDeleting(true);
     try {
       await api.delete(`/videos/${id}`);
-      navigate('/videos');
+      navigate("/videos");
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to delete video');
+      setError(err.response?.data?.message || "Failed to delete video");
+      setDeleteDialogOpen(false);
+    } finally {
+      setDeleting(false);
     }
   };
 
-
   if (loading) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="text-center py-8 text-muted-foreground">Loading video...</div>
+      <div className="container mx-auto p-4">
+        <div className="text-center py-8 text-muted-foreground">
+          Loading video...
+        </div>
       </div>
     );
   }
 
   if (error || !video) {
     return (
-      <div className="container mx-auto p-6">
+      <div className="container mx-auto p-4">
         <Card>
           <CardContent className="pt-6 text-center text-red-600">
-            {error || 'Video not found'}
+            {error || "Video not found"}
           </CardContent>
         </Card>
       </div>
@@ -138,17 +156,49 @@ export default function VideoDetail() {
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-4xl">
+    <div className="container mx-auto p-4 max-w-4xl">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">{video.title}</h1>
-        {(user?.role === 'editor' || user?.role === 'admin') && (
-          <Button variant="destructive" onClick={handleDelete}>
-            Delete
-          </Button>
+        {(user?.role === "editor" || user?.role === "admin") && (
+          <>
+            <Button
+              variant="destructive"
+              onClick={() => setDeleteDialogOpen(true)}
+            >
+              Delete
+            </Button>
+            <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Delete Video</DialogTitle>
+                  <DialogDescription>
+                    Are you sure you want to delete "{video.title}"? This action
+                    cannot be undone.
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                  <Button
+                    variant="outline"
+                    onClick={() => setDeleteDialogOpen(false)}
+                    disabled={deleting}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={handleDelete}
+                    disabled={deleting}
+                  >
+                    {deleting ? "Deleting..." : "Delete"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </>
         )}
       </div>
 
-      {video.status === 'processing' && processingProgress !== null && (
+      {video.status === "processing" && processingProgress !== null && (
         <Card className="mb-6">
           <CardContent className="pt-6">
             <div className="space-y-2">
@@ -167,7 +217,7 @@ export default function VideoDetail() {
         </Card>
       )}
 
-      {video.status === 'processed' && videoUrl && (
+      {video.status === "processed" && videoUrl && (
         <Card className="mb-6">
           <CardContent className="pt-6">
             <video
@@ -177,8 +227,8 @@ export default function VideoDetail() {
               preload="metadata"
               crossOrigin="anonymous"
               onError={(e) => {
-                console.error('Video playback error:', e);
-                setError('Failed to load video. Please try again.');
+                console.error("Video playback error:", e);
+                setError("Failed to load video. Please try again.");
               }}
             >
               Your browser does not support the video tag.
@@ -195,43 +245,54 @@ export default function VideoDetail() {
           <div>
             <h3 className="font-semibold mb-2">Description</h3>
             <p className="text-muted-foreground">
-              {video.description || 'No description provided'}
+              {video.description || "No description provided"}
             </p>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <h3 className="font-semibold mb-2">Status</h3>
-              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                video.status === 'processed' ? 'bg-green-100 text-green-800' :
-                video.status === 'processing' ? 'bg-blue-100 text-blue-800' :
-                video.status === 'failed' ? 'bg-red-100 text-red-800' :
-                'bg-gray-100 text-gray-800'
-              }`}>
+              <span
+                className={`px-2 py-1 rounded-full text-xs font-medium ${
+                  video.status === "processed"
+                    ? "bg-green-100 text-green-800"
+                    : video.status === "processing"
+                    ? "bg-blue-100 text-blue-800"
+                    : video.status === "failed"
+                    ? "bg-red-100 text-red-800"
+                    : "bg-gray-100 text-gray-800"
+                }`}
+              >
                 {video.status}
               </span>
             </div>
             <div>
               <h3 className="font-semibold mb-2">Safety Status</h3>
-              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                video.safetyStatus === 'safe' ? 'bg-green-100 text-green-800' :
-                video.safetyStatus === 'flagged' ? 'bg-red-100 text-red-800' :
-                'bg-gray-100 text-gray-800'
-              }`}>
+              <span
+                className={`px-2 py-1 rounded-full text-xs font-medium ${
+                  video.safetyStatus === "safe"
+                    ? "bg-green-100 text-green-800"
+                    : video.safetyStatus === "flagged"
+                    ? "bg-red-100 text-red-800"
+                    : "bg-gray-100 text-gray-800"
+                }`}
+              >
                 {video.safetyStatus}
               </span>
             </div>
             <div>
               <h3 className="font-semibold mb-2">Size</h3>
-              <p className="text-muted-foreground">{(video.size / 1024 / 1024).toFixed(2)} MB</p>
+              <p className="text-muted-foreground">
+                {(video.size / 1024 / 1024).toFixed(2)} MB
+              </p>
             </div>
-            {video.duration && (
-              <div>
-                <h3 className="font-semibold mb-2">Duration</h3>
-                <p className="text-muted-foreground">
-                  {Math.floor(video.duration / 60)}:{String(video.duration % 60).padStart(2, '0')}
-                </p>
-              </div>
-            )}
+            <div>
+              <h3 className="font-semibold mb-2">Duration</h3>
+              <p className="text-muted-foreground">
+                {Math.floor(video.duration ?? 0 / 60)}:
+                {String(video.duration ?? 0 % 60).padStart(2, "0")}
+              </p>
+            </div>
+
             <div>
               <h3 className="font-semibold mb-2">Uploaded By</h3>
               <p className="text-muted-foreground">{video.owner.name}</p>
@@ -248,4 +309,3 @@ export default function VideoDetail() {
     </div>
   );
 }
-
