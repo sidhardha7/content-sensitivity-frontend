@@ -1,0 +1,172 @@
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import api from '@/lib/api';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAuth } from '@/context/AuthContext';
+
+interface Video {
+  _id: string;
+  title: string;
+  description?: string;
+  status: string;
+  safetyStatus: string;
+  size: number;
+  duration?: number;
+  createdAt: string;
+  owner: {
+    _id: string;
+    name: string;
+    email: string;
+  };
+}
+
+export default function VideoLibrary() {
+  const { user } = useAuth();
+  const [videos, setVideos] = useState<Video[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+
+  useEffect(() => {
+    loadVideos();
+  }, [statusFilter]);
+
+  const loadVideos = async () => {
+    try {
+      setLoading(true);
+      const params: any = {};
+      if (search) params.search = search;
+      if (statusFilter) params.status = statusFilter;
+
+      const response = await api.get('/videos', { params });
+      setVideos(response.data.videos);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to load videos');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    loadVideos();
+  };
+
+  const getStatusBadge = (status: string) => {
+    const colors: Record<string, string> = {
+      uploaded: 'bg-gray-100 text-gray-800',
+      processing: 'bg-blue-100 text-blue-800',
+      processed: 'bg-green-100 text-green-800',
+      failed: 'bg-red-100 text-red-800',
+    };
+    return (
+      <span className={`px-2 py-1 rounded-full text-xs font-medium ${colors[status] || colors.uploaded}`}>
+        {status}
+      </span>
+    );
+  };
+
+  const getSafetyBadge = (safety: string) => {
+    const colors: Record<string, string> = {
+      safe: 'bg-green-100 text-green-800',
+      flagged: 'bg-red-100 text-red-800',
+      unknown: 'bg-gray-100 text-gray-800',
+    };
+    return (
+      <span className={`px-2 py-1 rounded-full text-xs font-medium ${colors[safety] || colors.unknown}`}>
+        {safety}
+      </span>
+    );
+  };
+
+  return (
+    <div className="container mx-auto p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Video Library</h1>
+        {(user?.role === 'editor' || user?.role === 'admin') && (
+          <Link to="/videos/upload">
+            <Button>Upload Video</Button>
+          </Link>
+        )}
+      </div>
+
+      <Card className="mb-6">
+        <CardContent className="pt-6">
+          <form onSubmit={handleSearch} className="flex gap-4">
+            <Input
+              placeholder="Search videos..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="flex-1"
+            />
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="px-3 py-2 border rounded-md"
+            >
+              <option value="">All Status</option>
+              <option value="uploaded">Uploaded</option>
+              <option value="processing">Processing</option>
+              <option value="processed">Processed</option>
+              <option value="failed">Failed</option>
+            </select>
+            <Button type="submit">Search</Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      {error && (
+        <div className="p-3 text-sm text-red-600 bg-red-50 rounded-md mb-4">
+          {error}
+        </div>
+      )}
+
+      {loading ? (
+        <div className="text-center py-8 text-muted-foreground">Loading videos...</div>
+      ) : videos.length === 0 ? (
+        <Card>
+          <CardContent className="pt-6 text-center text-muted-foreground">
+            No videos found
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {videos.map((video) => (
+            <Card key={video._id} className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <CardTitle className="text-lg">{video.title}</CardTitle>
+                <CardDescription>
+                  {video.description || 'No description'}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2 mb-4">
+                  <div className="flex gap-2">
+                    {getStatusBadge(video.status)}
+                    {getSafetyBadge(video.safetyStatus)}
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Size: {(video.size / 1024 / 1024).toFixed(2)} MB
+                    {video.duration && ` • ${Math.floor(video.duration / 60)}:${String(video.duration % 60).padStart(2, '0')}`}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Uploaded by {video.owner.name}
+                  </p>
+                </div>
+                <Link to={`/videos/${video._id}`}>
+                  <Button variant="outline" className="w-full">
+                    View Details
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
