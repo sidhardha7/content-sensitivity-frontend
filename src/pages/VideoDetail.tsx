@@ -57,6 +57,7 @@ export default function VideoDetail() {
     }
   }, [user?.role, video]);
 
+  // Socket.io real-time updates
   useEffect(() => {
     if (!socket || !id) return;
 
@@ -104,6 +105,46 @@ export default function VideoDetail() {
       socket.off("processing:failed", handleProcessingFailed);
     };
   }, [socket, id]);
+
+  // Polling fallback for processing status (when Socket.io is unavailable)
+  useEffect(() => {
+    if (!id || !video) return;
+
+    // Only poll if video is processing
+    if (video.status !== "processing") {
+      return;
+    }
+
+    const pollStatus = async () => {
+      try {
+        const response = await api.get(`/videos/${id}/status`);
+        const { status, safetyStatus, processing } = response.data;
+
+        // Update progress if available from polling
+        if (processing?.progress !== undefined) {
+          setProcessingProgress(processing.progress);
+        }
+
+        // If status changed, reload video
+        if (status !== video.status || safetyStatus !== video.safetyStatus) {
+          loadVideo();
+        }
+      } catch (err) {
+        // Silently fail polling - Socket.io is primary method
+        console.error("Polling status failed:", err);
+      }
+    };
+
+    // Poll every 3 seconds while video is processing
+    const pollInterval = setInterval(pollStatus, 3000);
+
+    // Initial poll
+    pollStatus();
+
+    return () => {
+      clearInterval(pollInterval);
+    };
+  }, [id, video?.status, video?.safetyStatus]);
 
   const loadVideo = async () => {
     try {
