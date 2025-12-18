@@ -41,18 +41,18 @@ export default function VideoLibrary() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
+  const [sensitivityFilter, setSensitivityFilter] = useState("");
 
   useEffect(() => {
     loadVideos();
-  }, [statusFilter]);
+  }, [sensitivityFilter]);
 
   const loadVideos = async () => {
     try {
       setLoading(true);
       const params: any = {};
       if (search) params.search = search;
-      if (statusFilter) params.status = statusFilter;
+      if (sensitivityFilter) params.safetyStatus = sensitivityFilter;
 
       const response = await api.get("/videos", { params });
       setVideos(response.data.videos);
@@ -126,17 +126,19 @@ export default function VideoLibrary() {
             className="flex-1 h-10"
           />
           <Select
-            value={statusFilter}
-            onValueChange={(value: string) => setStatusFilter(value)}
+            value={sensitivityFilter || "all"}
+            onValueChange={(value: string) =>
+              setSensitivityFilter(value === "all" ? "" : value)
+            }
           >
             <SelectTrigger className="h-10 w-auto min-w-[140px]">
-              <SelectValue placeholder="Select a status" />
+              <SelectValue placeholder="Filter by sensitivity" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="uploaded">Uploaded</SelectItem>
-              <SelectItem value="processing">Processing</SelectItem>
-              <SelectItem value="processed">Processed</SelectItem>
-              <SelectItem value="failed">Failed</SelectItem>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="safe">Safe</SelectItem>
+              <SelectItem value="flagged">Flagged</SelectItem>
+              <SelectItem value="unknown">Unknown</SelectItem>
             </SelectContent>
           </Select>
           <Button type="submit" className="h-10">
@@ -179,10 +181,6 @@ export default function VideoLibrary() {
                   </div>
                   <p className="text-sm text-muted-foreground">
                     Size: {(video.size / 1024 / 1024).toFixed(2)} MB
-                    {video.duration &&
-                      ` • ${Math.floor(video.duration / 60)}:${String(
-                        video.duration % 60
-                      ).padStart(2, "0")}`}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     Uploaded by {video.owner.name}

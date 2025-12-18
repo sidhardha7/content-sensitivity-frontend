@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import api from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -124,9 +125,12 @@ export default function VideoDetail() {
     setDeleting(true);
     try {
       await api.delete(`/videos/${id}`);
+      toast.success("Video deleted successfully!");
       navigate("/videos");
     } catch (err: any) {
-      setError(err.response?.data?.message || "Failed to delete video");
+      const errorMessage = err.response?.data?.message || "Failed to delete video";
+      setError(errorMessage);
+      toast.error(errorMessage);
       setDeleteDialogOpen(false);
     } finally {
       setDeleting(false);
