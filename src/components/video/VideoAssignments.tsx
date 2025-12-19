@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { X, UserPlus } from "lucide-react";
+import { Link } from "react-router-dom";
 import api from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -100,6 +101,30 @@ export default function VideoAssignments({
     }
   };
 
+  // Calculate eligible users (users that can be assigned)
+  const eligibleUsers = useMemo(() => {
+    return users.filter(
+      (u) =>
+        // Exclude inactive users
+        u.isActive !== false &&
+        // Exclude the video owner (they already have access)
+        u._id !== video.owner._id &&
+        // Exclude admins (they already have access to all videos)
+        u.role !== "admin"
+    );
+  }, [users, video.owner._id]);
+
+  // Calculate available users (eligible users not yet assigned)
+  const availableUsers = useMemo(() => {
+    return eligibleUsers.filter(
+      (u) => !video.assignedTo?.some((au) => au._id === u._id)
+    );
+  }, [eligibleUsers, video.assignedTo]);
+
+  // Check if all eligible users are assigned
+  const isAssignedToEveryone =
+    eligibleUsers.length > 0 && availableUsers.length === 0;
+
   return (
     <Card>
       <CardHeader>
@@ -142,39 +167,46 @@ export default function VideoAssignments({
         {/* Add User Assignment */}
         <div className="border-t pt-4">
           <h3 className="font-semibold mb-3">Assign to User</h3>
-          <div className="flex gap-2">
-            <Select value={selectedUserId} onValueChange={setSelectedUserId}>
-              <SelectTrigger className="flex-1">
-                <SelectValue placeholder="Select a user to assign" />
-              </SelectTrigger>
-              <SelectContent>
-                {users
-                  .filter(
-                    (u) =>
-                      // Exclude already assigned users
-                      !video.assignedTo?.some((au) => au._id === u._id) &&
-                      // Exclude inactive users
-                      u.isActive !== false &&
-                      // Exclude the video owner (they already have access)
-                      u._id !== video.owner._id &&
-                      // Exclude admins (they already have access to all videos)
-                      u.role !== "admin"
-                  )
-                  .map((u) => (
+          {isAssignedToEveryone ? (
+            <p className="text-sm text-muted-foreground py-2">
+              Assigned to everyone
+            </p>
+          ) : availableUsers.length === 0 ? (
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">
+                No users available to assign.{" "}
+                <Link
+                  to="/admin/users"
+                  className="text-primary hover:underline font-medium"
+                >
+                  Create users
+                </Link>{" "}
+                to assign them to this video.
+              </p>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <Select value={selectedUserId} onValueChange={setSelectedUserId}>
+                <SelectTrigger className="flex-1">
+                  <SelectValue placeholder="Select a user to assign" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableUsers.map((u) => (
                     <SelectItem key={u._id} value={u._id}>
                       {u.name} ({u.email}) - {u.role}
                     </SelectItem>
                   ))}
-              </SelectContent>
-            </Select>
-            <Button
-              onClick={handleAddUser}
-              disabled={!selectedUserId || assigning}
-            >
-              <UserPlus className="h-4 w-4 mr-2" />
-              {assigning ? "Assigning..." : "Assign"}
-            </Button>
-          </div>
+                </SelectContent>
+              </Select>
+              <Button
+                onClick={handleAddUser}
+                disabled={!selectedUserId || assigning}
+              >
+                <UserPlus className="h-4 w-4 mr-2" />
+                {assigning ? "Assigning..." : "Assign"}
+              </Button>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

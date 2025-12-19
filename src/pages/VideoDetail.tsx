@@ -47,17 +47,40 @@ export default function VideoDetail() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [startingAnalysis, setStartingAnalysis] = useState(false);
 
+  const loadVideo = async (showLoading = false) => {
+    try {
+      if (showLoading) {
+        setLoading(true);
+      }
+      const response = await api.get(`/videos/${id}`);
+      setVideo(response.data.video);
+
+      // Create video URL for streaming (if uploaded or processed)
+      // Video can be streamed even before analysis is complete
+      if (
+        response.data.video.status === "uploaded" ||
+        response.data.video.status === "processed"
+      ) {
+        const token = localStorage.getItem("token");
+        const apiUrl =
+          import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+        const baseUrl = apiUrl.replace("/api", "");
+        setVideoUrl(`${baseUrl}/api/videos/${id}/stream?token=${token}`);
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Failed to load video");
+    } finally {
+      if (showLoading) {
+        setLoading(false);
+      }
+    }
+  };
+
   useEffect(() => {
     if (id) {
       loadVideo(true);
     }
   }, [id]);
-
-  useEffect(() => {
-    if (user?.role === "admin" && video) {
-      // Users will be loaded by VideoAssignments component
-    }
-  }, [user?.role, video]);
 
   // Socket.io real-time updates
   useEffect(() => {
@@ -105,35 +128,6 @@ export default function VideoDetail() {
       socket.off("processing:failed", handleProcessingFailed);
     };
   }, [socket, id]);
-
-  const loadVideo = async (showLoading = false) => {
-    try {
-      if (showLoading) {
-        setLoading(true);
-      }
-      const response = await api.get(`/videos/${id}`);
-      setVideo(response.data.video);
-
-      // Create video URL for streaming (if uploaded or processed)
-      // Video can be streamed even before analysis is complete
-      if (
-        response.data.video.status === "uploaded" ||
-        response.data.video.status === "processed"
-      ) {
-        const token = localStorage.getItem("token");
-        const apiUrl =
-          import.meta.env.VITE_API_URL || "http://localhost:5000/api";
-        const baseUrl = apiUrl.replace("/api", "");
-        setVideoUrl(`${baseUrl}/api/videos/${id}/stream?token=${token}`);
-      }
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Failed to load video");
-    } finally {
-      if (showLoading) {
-        setLoading(false);
-      }
-    }
-  };
 
   const handleStartAnalysis = async () => {
     if (!id || !video) return;
