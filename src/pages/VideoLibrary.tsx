@@ -157,7 +157,7 @@ export default function VideoLibrary() {
       )}
 
       {loading ? (
-        <div className="text-center py-8 text-muted-foreground">
+        <div className="text-center py-8 text-muted-foreground flex items-center justify-center gap-2 ">
           <Loader2 className="animate-spin h-4 w-4 dark:text-white text-black" />
           <span>Loading videos</span>
         </div>

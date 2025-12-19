@@ -122,7 +122,7 @@ export default function VideoUploadDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto scrollbar-transparent">
         <DialogHeader>
           <DialogTitle>Upload New Video</DialogTitle>
           <DialogDescription>
