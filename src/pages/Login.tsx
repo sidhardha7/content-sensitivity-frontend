@@ -13,6 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import Antigravity from "@/components/Antigravity";
+import { Loader2 } from "lucide-react";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -113,7 +114,14 @@ export default function Login() {
               </div>
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Logging in..." : "Login"}
+              {loading ? (
+                <div className="flex items-center justify-center py-8 text-muted-foreground">
+                  <Loader2 className="animate-spin h-4 w-4 dark:text-black text-white" />
+                  <span>Logging in...</span>
+                </div>
+              ) : (
+                <span>Login</span>
+              )}
             </Button>
             <div className="text-center text-sm text-muted-foreground">
               Don't have an account?{" "}

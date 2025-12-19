@@ -10,7 +10,7 @@ import ProcessingProgress from "@/components/video/ProcessingProgress";
 import VideoPlayer from "@/components/video/VideoPlayer";
 import VideoInfo from "@/components/video/VideoInfo";
 import VideoAssignments from "@/components/video/VideoAssignments";
-
+import { Loader2 } from "lucide-react";
 interface Video {
   _id: string;
   title: string;
@@ -250,7 +250,8 @@ export default function VideoDetail() {
     return (
       <div className="container mx-auto p-4">
         <div className="text-center py-8 text-muted-foreground">
-          Loading video...
+          <Loader2 className="animate-spin h-4 w-4 dark:text-white text-black" />
+          <span>Loading video...</span>
         </div>
       </div>
     );

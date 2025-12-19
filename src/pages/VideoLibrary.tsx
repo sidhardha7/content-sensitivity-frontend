@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
+import { Loader2 } from "lucide-react";
 interface Video {
   _id: string;
   title: string;
@@ -155,7 +155,8 @@ export default function VideoLibrary() {
 
       {loading ? (
         <div className="text-center py-8 text-muted-foreground">
-          Loading videos...
+          <Loader2 className="animate-spin h-4 w-4 dark:text-white text-black" />
+          <span>Loading videos</span>
         </div>
       ) : videos.length === 0 ? (
         <Card>

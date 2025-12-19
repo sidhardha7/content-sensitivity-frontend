@@ -12,6 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import Antigravity from "@/components/Antigravity";
+import { Loader2 } from "lucide-react";
 
 export default function Register() {
   const [tenantName, setTenantName] = useState("");
@@ -127,7 +128,14 @@ export default function Register() {
               />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Creating account..." : "Register"}
+              {loading ? (
+                <div className="flex items-center justify-center py-8 text-muted-foreground">
+                  <Loader2 className="animate-spin h-4 w-4 dark:text-black text-white" />
+                  <span>Creating account</span>
+                </div>
+              ) : (
+                <span>Register</span>
+              )}
             </Button>
             <div className="text-center text-sm text-muted-foreground">
               Already have an account?{" "}

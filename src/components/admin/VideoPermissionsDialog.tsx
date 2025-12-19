@@ -85,9 +85,9 @@ export default function VideoPermissionsDialog({
           </DialogDescription>
         </DialogHeader>
         {loading ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
-            <span className="ml-2">Loading permissions...</span>
+          <div className="text-center py-8 text-muted-foreground flex items-center justify-center gap-2">
+            <Loader2 className="animate-spin h-4 w-4 dark:text-white text-black" />
+            <span>Loading permissions</span>
           </div>
         ) : (
           <div className="space-y-6">

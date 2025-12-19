@@ -93,9 +93,9 @@ export default function AdminUsers() {
       )}
 
       {loading ? (
-        <div className="flex items-center justify-center py-8 text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin text-primary" />
-          <span className="ml-2">Loading users...</span>
+        <div className="text-center py-8 text-muted-foreground flex items-center justify-center gap-2">
+          <Loader2 className="animate-spin h-4 w-4 dark:text-white text-black" />
+          <span>Loading users</span>
         </div>
       ) : (
         <UsersTable
