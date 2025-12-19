@@ -42,12 +42,14 @@ export default function VideoDetail() {
   const [processingProgress, setProcessingProgress] = useState<number | null>(
     null
   );
+  const [processingMessage, setProcessingMessage] = useState<string>("");
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [startingAnalysis, setStartingAnalysis] = useState(false);
 
   useEffect(() => {
     if (id) {
-      loadVideo();
+      loadVideo(true);
     }
   }, [id]);
 
@@ -82,14 +84,12 @@ export default function VideoDetail() {
     const handleProcessingCompleted = (data: { videoId: string }) => {
       if (data.videoId === id) {
         setProcessingProgress(100);
-        loadVideo(); // Reload to get updated status
       }
     };
 
     const handleProcessingFailed = (data: { videoId: string }) => {
       if (data.videoId === id) {
         setProcessingProgress(null);
-        loadVideo(); // Reload to get updated status
       }
     };
 
@@ -106,54 +106,20 @@ export default function VideoDetail() {
     };
   }, [socket, id]);
 
-  // Polling fallback for processing status (when Socket.io is unavailable)
-  useEffect(() => {
-    if (!id || !video) return;
-
-    // Only poll if video is processing
-    if (video.status !== "processing") {
-      return;
-    }
-
-    const pollStatus = async () => {
-      try {
-        const response = await api.get(`/videos/${id}/status`);
-        const { status, safetyStatus, processing } = response.data;
-
-        // Update progress if available from polling
-        if (processing?.progress !== undefined) {
-          setProcessingProgress(processing.progress);
-        }
-
-        // If status changed, reload video
-        if (status !== video.status || safetyStatus !== video.safetyStatus) {
-          loadVideo();
-        }
-      } catch (err) {
-        // Silently fail polling - Socket.io is primary method
-        console.error("Polling status failed:", err);
-      }
-    };
-
-    // Poll every 3 seconds while video is processing
-    const pollInterval = setInterval(pollStatus, 3000);
-
-    // Initial poll
-    pollStatus();
-
-    return () => {
-      clearInterval(pollInterval);
-    };
-  }, [id, video?.status, video?.safetyStatus]);
-
-  const loadVideo = async () => {
+  const loadVideo = async (showLoading = false) => {
     try {
-      setLoading(true);
+      if (showLoading) {
+        setLoading(true);
+      }
       const response = await api.get(`/videos/${id}`);
       setVideo(response.data.video);
 
-      // Create video URL for streaming (if processed)
-      if (response.data.video.status === "processed") {
+      // Create video URL for streaming (if uploaded or processed)
+      // Video can be streamed even before analysis is complete
+      if (
+        response.data.video.status === "uploaded" ||
+        response.data.video.status === "processed"
+      ) {
         const token = localStorage.getItem("token");
         const apiUrl =
           import.meta.env.VITE_API_URL || "http://localhost:5000/api";
@@ -163,7 +129,120 @@ export default function VideoDetail() {
     } catch (err: any) {
       setError(err.response?.data?.message || "Failed to load video");
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
+    }
+  };
+
+  const handleStartAnalysis = async () => {
+    if (!id || !video) return;
+
+    try {
+      setStartingAnalysis(true);
+      setError("");
+
+      // Update video status locally
+      setVideo({
+        ...video,
+        status: "processing",
+        safetyStatus: "unknown",
+      });
+
+      // Get API base URL
+      const apiUrl =
+        import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+      const baseUrl = apiUrl.replace("/api", "");
+      const token = localStorage.getItem("token");
+
+      // Use fetch with ReadableStream for Server-Sent Events
+      const response = await fetch(`${baseUrl}/api/videos/${id}/analyze`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to start analysis");
+      }
+
+      // Read the stream
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value);
+          const lines = chunk.split("\n");
+
+          for (const line of lines) {
+            if (line.startsWith("data: ")) {
+              try {
+                const data = JSON.parse(line.substring(6));
+
+                if (data.progress !== undefined) {
+                  setProcessingProgress(data.progress);
+                }
+
+                if (data.message) {
+                  setProcessingMessage(data.message);
+                }
+
+                // Update safetyStatus whenever it's available in the stream
+                if (data.safetyStatus) {
+                  setVideo((prevVideo) => {
+                    if (!prevVideo) return prevVideo;
+                    return {
+                      ...prevVideo,
+                      safetyStatus: data.safetyStatus,
+                    };
+                  });
+                }
+
+                // If completed, update video status
+                if (
+                  data.status === "completed" ||
+                  data.status === "processed"
+                ) {
+                  setVideo((prevVideo) => {
+                    if (!prevVideo) return prevVideo;
+                    return {
+                      ...prevVideo,
+                      status: "processed",
+                      safetyStatus:
+                        data.safetyStatus ||
+                        prevVideo.safetyStatus ||
+                        "unknown",
+                    };
+                  });
+                  setStartingAnalysis(false);
+                  // Reload video to ensure we have the latest state from database
+                  loadVideo(false);
+                }
+
+                // If failed, update status
+                if (data.status === "failed") {
+                  setVideo({
+                    ...video,
+                    status: "failed",
+                  });
+                  setError(data.message || "Analysis failed");
+                  setStartingAnalysis(false);
+                }
+              } catch (err) {
+                console.error("Error parsing SSE data:", err);
+              }
+            }
+          }
+        }
+      }
+    } catch (err: any) {
+      setError(err.message || "Failed to start analysis");
+      setStartingAnalysis(false);
     }
   };
 
@@ -203,12 +282,46 @@ export default function VideoDetail() {
         )}
       </div>
 
-      {video.status === "processing" && processingProgress !== null && (
-        <ProcessingProgress progress={processingProgress} />
-      )}
+      {/* Video Player - Show when uploaded or processed */}
+      {videoUrl && <VideoPlayer videoUrl={videoUrl} onError={setError} />}
 
-      {video.status === "processed" && videoUrl && (
-        <VideoPlayer videoUrl={videoUrl} onError={setError} />
+      {/* Start Analysis Button - Show when video is uploaded, processed, or failed (allows re-analysis) */}
+      {video.status !== "processing" &&
+        (user?.role === "editor" || user?.role === "admin") && (
+          <Card className="mb-6 mt-6">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold mb-1">Sensitivity Analysis</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {video.status === "uploaded"
+                      ? "Start content sensitivity analysis for this video"
+                      : video.status === "processed"
+                      ? "Re-run content sensitivity analysis for this video"
+                      : "Retry content sensitivity analysis for this video"}
+                  </p>
+                </div>
+                <Button
+                  onClick={handleStartAnalysis}
+                  disabled={startingAnalysis}
+                >
+                  {startingAnalysis
+                    ? "Starting..."
+                    : video.status === "uploaded"
+                    ? "Start Analysis"
+                    : "Re-analyze"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+      {/* Processing Progress Bar - Show when analysis is running */}
+      {video.status === "processing" && processingProgress !== null && (
+        <ProcessingProgress
+          progress={processingProgress}
+          message={processingMessage || "Processing video..."}
+        />
       )}
 
       <VideoInfo video={video} />
