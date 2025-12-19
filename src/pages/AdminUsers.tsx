@@ -73,14 +73,17 @@ export default function AdminUsers() {
 
   return (
     <div>
-      <div className="flex justify-between items-start mb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
-          <h1 className="text-3xl font-bold mb-1">Members</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold mb-1">Members</h1>
           <p className="text-sm text-muted-foreground">
             Manage users in your tenant
           </p>
         </div>
-        <Button onClick={() => setCreateDialogOpen(true)}>
+        <Button
+          onClick={() => setCreateDialogOpen(true)}
+          className="w-full sm:w-auto"
+        >
           <UserPlus className="h-4 w-4 mr-2" />
           Invite User
         </Button>

@@ -88,8 +88,8 @@ export default function VideoUpload() {
   };
 
   return (
-    <div className="container mx-auto p-4 max-w-2xl ">
-      <h1 className="text-3xl font-bold mb-6">Upload Video</h1>
+    <div className="max-w-2xl space-y-6">
+      <h1 className="text-2xl sm:text-3xl font-bold">Upload Video</h1>
       <Card>
         <CardHeader>
           <CardTitle>Upload New Video</CardTitle>

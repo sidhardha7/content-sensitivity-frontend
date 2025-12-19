@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
+import VideoUploadDialog from "@/components/video/VideoUploadDialog";
 interface Video {
   _id: string;
   title: string;
@@ -42,6 +43,7 @@ export default function VideoLibrary() {
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [sensitivityFilter, setSensitivityFilter] = useState("");
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
 
   useEffect(() => {
     loadVideos();
@@ -104,48 +106,49 @@ export default function VideoLibrary() {
   };
 
   return (
-    <div className="container mx-auto p-4">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Video Library</h1>
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <h1 className="text-2xl sm:text-3xl font-bold">Video Library</h1>
         {(user?.role === "editor" || user?.role === "admin") && (
-          <Link to="/videos/upload">
-            <Button>Upload Video</Button>
-          </Link>
+          <Button
+            onClick={() => setUploadDialogOpen(true)}
+            className="w-full sm:w-auto"
+          >
+            Upload Video
+          </Button>
         )}
       </div>
 
-      <div className="flex gap-4 items-center mb-6">
-        <form
-          onSubmit={handleSearch}
-          className="flex-1 flex gap-4 items-center"
+      <form
+        onSubmit={handleSearch}
+        className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-center"
+      >
+        <Input
+          placeholder="Search videos..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="flex-1 h-10"
+        />
+        <Select
+          value={sensitivityFilter || "all"}
+          onValueChange={(value: string) =>
+            setSensitivityFilter(value === "all" ? "" : value)
+          }
         >
-          <Input
-            placeholder="Search videos..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="flex-1 h-10"
-          />
-          <Select
-            value={sensitivityFilter || "all"}
-            onValueChange={(value: string) =>
-              setSensitivityFilter(value === "all" ? "" : value)
-            }
-          >
-            <SelectTrigger className="h-10 w-auto min-w-[140px]">
-              <SelectValue placeholder="Filter by sensitivity" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All</SelectItem>
-              <SelectItem value="safe">Safe</SelectItem>
-              <SelectItem value="flagged">Flagged</SelectItem>
-              <SelectItem value="unknown">Unknown</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button type="submit" className="h-10">
-            Search
-          </Button>
-        </form>
-      </div>
+          <SelectTrigger className="h-10 w-full sm:w-auto sm:min-w-[140px]">
+            <SelectValue placeholder="Filter by sensitivity" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All</SelectItem>
+            <SelectItem value="safe">Safe</SelectItem>
+            <SelectItem value="flagged">Flagged</SelectItem>
+            <SelectItem value="unknown">Unknown</SelectItem>
+          </SelectContent>
+        </Select>
+        <Button type="submit" className="h-10 w-full sm:w-auto">
+          Search
+        </Button>
+      </form>
 
       {error && (
         <div className="p-3 text-sm text-red-600 bg-red-50 rounded-md mb-4">
@@ -197,6 +200,11 @@ export default function VideoLibrary() {
           ))}
         </div>
       )}
+
+      <VideoUploadDialog
+        open={uploadDialogOpen}
+        onOpenChange={setUploadDialogOpen}
+      />
     </div>
   );
 }

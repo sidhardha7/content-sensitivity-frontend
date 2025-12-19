@@ -9,7 +9,6 @@ import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import Dashboard from "@/pages/Dashboard";
 import VideoLibrary from "@/pages/VideoLibrary";
-import VideoUpload from "@/pages/VideoUpload";
 import VideoDetail from "@/pages/VideoDetail";
 import AdminUsers from "@/pages/AdminUsers";
 
@@ -39,16 +38,6 @@ function App() {
                   <ProtectedRoute>
                     <Layout>
                       <VideoLibrary />
-                    </Layout>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/videos/upload"
-                element={
-                  <ProtectedRoute requiredRole="editor">
-                    <Layout>
-                      <VideoUpload />
                     </Layout>
                   </ProtectedRoute>
                 }

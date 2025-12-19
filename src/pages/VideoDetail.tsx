@@ -248,35 +248,34 @@ export default function VideoDetail() {
 
   if (loading) {
     return (
-      <div className="container mx-auto p-4">
-        <div className="text-center py-8 text-muted-foreground">
-          <Loader2 className="animate-spin h-4 w-4 dark:text-white text-black" />
-          <span>Loading video...</span>
-        </div>
+      <div className="text-center py-8 text-muted-foreground">
+        <Loader2 className="animate-spin h-4 w-4 dark:text-white text-black" />
+        <span>Loading video...</span>
       </div>
     );
   }
 
   if (error || !video) {
     return (
-      <div className="container mx-auto p-4">
-        <Card>
-          <CardContent className="pt-6 text-center text-red-600">
-            {error || "Video not found"}
-          </CardContent>
-        </Card>
-      </div>
+      <Card>
+        <CardContent className="pt-6 text-center text-destructive">
+          {error || "Video not found"}
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div className="container mx-auto p-4 max-w-4xl">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">{video.title}</h1>
+    <div className="space-y-4 md:space-y-6 max-w-4xl mx-auto">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <h1 className="text-2xl sm:text-3xl font-bold break-words">
+          {video.title}
+        </h1>
         {(user?.role === "editor" || user?.role === "admin") && (
           <Button
             variant="destructive"
             onClick={() => setDeleteDialogOpen(true)}
+            className="w-full sm:w-auto"
           >
             Delete
           </Button>
@@ -289,10 +288,10 @@ export default function VideoDetail() {
       {/* Start Analysis Button - Show when video is uploaded, processed, or failed (allows re-analysis) */}
       {video.status !== "processing" &&
         (user?.role === "editor" || user?.role === "admin") && (
-          <Card className="mb-6 mt-6">
+          <Card>
             <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex-1">
                   <h3 className="font-semibold mb-1">Sensitivity Analysis</h3>
                   <p className="text-sm text-muted-foreground">
                     {video.status === "uploaded"
@@ -305,6 +304,7 @@ export default function VideoDetail() {
                 <Button
                   onClick={handleStartAnalysis}
                   disabled={startingAnalysis}
+                  className="w-full sm:w-auto"
                 >
                   {startingAnalysis
                     ? "Starting..."
